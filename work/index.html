@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Status Monitoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        .status {
+            margin: 20px 0;
+        }
+        .status span {
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('date-time').textContent = 
+                'Date: ' + now.toLocaleDateString() + ' | Time: ' + now.toLocaleTimeString();
+        }
+
+        setInterval(updateTime, 1000);  
+    </script>
+</head>
+<body>
+    <h1>Device Status Monitoring</h1>
+    <div class="status">
+        <p>Devices: <span id="device-list">Loading...</span></p>
+        <p>Device Status: <span id="device-status">Loading...</span></p>
+        <p>ESD Status: <span id="esd-status">Safe</span></p>
+    </div>
+    <p id="date-time"></p>
+</body>
+</html>
