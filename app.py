@@ -1,28 +1,44 @@
 import json
-from flask import Flask, render_template, jsonify # type: ignore
-from flask_mqtt import Mqtt # type: ignore
+import socket
+import threading
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
-app.config['MQTT_BROKER_URL'] = '127.0.0.1' 
-app.config['MQTT_BROKER_PORT'] = 1883
-app.config['MQTT_KEEPALIVE'] = 60
-app.config['MQTT_CLIENT_ID'] = 'flask_app'
 
-mqtt = Mqtt(app)
+# Dictionary to store device data
+devices = {}
 
-devices = {
-    
-}
+# TCP server configuration
+TCP_IP = '127.0.0.1'
+TCP_PORT = 5005
+BUFFER_SIZE = 1024
 
-@mqtt.on_connect()
-def handle_connect(client, userdata, flags, rc):
-    mqtt.subscribe('home/mytopic')  
+def start_tcp_server():
+    """Start a TCP server to receive data."""
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((TCP_IP, TCP_PORT))
+    server_socket.listen(1)
 
-@mqtt.on_message()
-def handle_mqtt_message(client, userdata, message):
+    print(f"TCP server listening on {TCP_IP}:{TCP_PORT}")
+
+    while True:
+        conn, addr = server_socket.accept()
+        print(f"Connection from: {addr}")
+        data = conn.recv(BUFFER_SIZE).decode('utf-8')
+        if data:
+            print(f"Received data: {data}")
+            update_devices(data)
+        conn.close()
+
+def update_devices(data):
+    """Update devices dictionary with received data."""
     global devices
-    data = json.loads(message.payload.decode('utf-8'))
-    devices.update(data)
+    try:
+        # Assuming data is received in JSON format
+        parsed_data = json.loads(data)
+        devices.update(parsed_data)
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
 
 @app.route('/')
 def index():
@@ -33,4 +49,10 @@ def get_data():
     return jsonify(devices)
 
 if __name__ == '__main__':
+    # Start TCP server in a separate thread
+    tcp_thread = threading.Thread(target=start_tcp_server)
+    tcp_thread.daemon = True
+    tcp_thread.start()
+
+    # Start Flask app
     app.run(debug=True)
