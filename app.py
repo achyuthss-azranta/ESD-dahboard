@@ -1,25 +1,28 @@
 import json
-import csv
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify # type: ignore
+from flask_mqtt import Mqtt # type: ignore
 
 app = Flask(__name__)
+app.config['MQTT_BROKER_URL'] = '127.0.0.1' 
+app.config['MQTT_BROKER_PORT'] = 1883
+app.config['MQTT_KEEPALIVE'] = 60
+app.config['MQTT_CLIENT_ID'] = 'flask_app'
 
-# Load data from CSV into a dictionary
-def load_csv_data(file_path):
-    devices = {}
-    with open(file_path, mode='r') as csvfile:
-        csv_reader = csv.DictReader(csvfile)
-        for row in csv_reader:
-            device_id = row['Device']
-            devices[device_id] = {
-                'MAT_STATUS': int(row['MAT_STATUS']),
-                'BAND_STATUS': int(row['BAND_STATUS']),
-                'ESD_STATUS': row['ESD_STATUS']
-            }
-    return devices
+mqtt = Mqtt(app)
 
-# Load initial data from a test CSV file
-devices = load_csv_data('test_devices.csv')
+devices = {
+    
+}
+
+@mqtt.on_connect()
+def handle_connect(client, userdata, flags, rc):
+    mqtt.subscribe('home/mytopic')  
+
+@mqtt.on_message()
+def handle_mqtt_message(client, userdata, message):
+    global devices
+    data = json.loads(message.payload.decode('utf-8'))
+    devices.update(data)
 
 @app.route('/')
 def index():

@@ -1,4 +1,5 @@
 Device,MAT_STATUS,BAND_STATUS,ESD_STATUS
-Device1,1,0,Port 12
-Device2,0,1,Port 5
-Device3,1,1,Port 8
+Device1,1,0,Not Safe
+Device2,0,1,Not Safe
+Device3,1,1,Safe
+Device4,1,1,Safe
