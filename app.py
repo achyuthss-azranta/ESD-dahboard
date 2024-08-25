@@ -1,7 +1,7 @@
 import json
 import socket
 import threading
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
 
@@ -36,7 +36,15 @@ def update_devices(data):
     try:
         # Assuming data is received in JSON format
         parsed_data = json.loads(data)
-        devices.update(parsed_data)
+        for device_id, status in parsed_data.items():
+            mat_status = status.get('MAT_STATUS', 0)
+            band_status = status.get('BAND_STATUS', 0)
+            esd_status = "Safe" if mat_status == 1 and band_status == 1 else "Unsafe"
+            devices[device_id] = {
+                'MAT_STATUS': mat_status,
+                'BAND_STATUS': band_status,
+                'ESD_STATUS': esd_status
+            }
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
 
@@ -47,6 +55,25 @@ def index():
 @app.route('/data')
 def get_data():
     return jsonify(devices)
+
+@app.route('/add_device', methods=['POST'])
+def add_device():
+    """Endpoint to add a new device."""
+    global devices
+    device_id = request.form.get('device_id')
+    mat_status = int(request.form.get('mat_status', 0))
+    band_status = int(request.form.get('band_status', 0))
+    
+    if device_id:
+        esd_status = "Safe" if mat_status == 1 and band_status == 1 else "Unsafe"
+        devices[device_id] = {
+            'MAT_STATUS': mat_status,
+            'BAND_STATUS': band_status,
+            'ESD_STATUS': esd_status
+        }
+        return jsonify({"message": "Device added successfully!"}), 200
+    else:
+        return jsonify({"error": "Device ID is required!"}), 400
 
 if __name__ == '__main__':
     # Start TCP server in a separate thread

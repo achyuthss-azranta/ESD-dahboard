@@ -160,21 +160,26 @@
 
         // Handle Add Device Form submission
         document.getElementById('add-device-form').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent the default form submission
+            event.preventDefault(); 
             const formData = new FormData(this);
 
             fetch('/add_device', {
                 method: 'POST',
                 body: formData
             })
+
             .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+            .then(result => {
+                if (result.message) {
+                    alert(result.message);
                     fetchData(); // Refresh the table data
+                } else if (result.error) {
+                    alert(result.error);
                 }
             })
             .catch(error => console.error("Error adding device:", error));
         });
+        
     </script>
 </body>
 </html>
