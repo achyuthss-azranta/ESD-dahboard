@@ -117,6 +117,8 @@
         .red {
             background-color: #dc3545;
         }
+    </style><style>
+        /* Styles omitted for brevity */
     </style>
 </head>
 <body>
@@ -147,7 +149,6 @@
     </table>
 
     <script>
-
         function updateTimer() {
             const timerElement = document.getElementById('timer');
             const now = new Date();
@@ -156,8 +157,8 @@
             timerElement.textContent = `${dateString} - ${timeString}`;
         }
 
-        setInterval(updateTimer, 1000);
-        updateTimer();  
+        setInterval(updateTimer, 500);
+        updateTimer();  // Initial call to display timer immediately
 
         function fetchData() {
             fetch('/data')
@@ -172,19 +173,30 @@
                             <td>${device}</td>
                             <td><button class="status-button ${status.MAT_STATUS ? 'green' : 'red'}">${status.MAT_STATUS}</button></td>
                             <td><button class="status-button ${status.BAND_STATUS ? 'green' : 'red'}">${status.BAND_STATUS}</button></td>
-                            <td>${status.MAT_STATUS && status.BAND_STATUS ? 'Safe' : 'Unsafe'}</td>
+                            <td>${status.ESD_STATUS}</td>
                             <td><button class="remove-button" onclick="removeDevice('${device}')">Remove</button></td>
                         `;
-
                         tbody.appendChild(row);
                     }
                 })
                 .catch(error => console.error("Error fetching data:", error));
         }
 
-        setInterval(fetchData, 1000);
+        function removeDevice(deviceId) {
+            fetch(`/remove_device/${deviceId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.message) {
+                        alert(result.message);
+                        fetchData();  // Refresh the table data
+                    } else if (result.error) {
+                        alert(result.error);
+                    }
+                })
+                .catch(error => console.error("Error removing device:", error));
+        }
 
-
+        setInterval(fetchData, 500);
         fetchData();
 
         // Handle Add Device Form submission
@@ -196,7 +208,6 @@
                 method: 'POST',
                 body: formData
             })
-
             .then(response => response.json())
             .then(result => {
                 if (result.message) {

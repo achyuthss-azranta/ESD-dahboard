@@ -1,12 +1,16 @@
 import json
 import socket
 import threading
+import time
+import serial #type: ignore
 from flask import Flask, render_template, jsonify, request #type: ignore
 
 app = Flask(__name__)
 
-# Dictionary to store device data
 devices = {}
+
+SERIAL_PORT = '/dev/ttyUSB0'
+BAUD_RATE = 9600
 
 # TCP server configuration
 TCP_IP = '127.0.0.1'
@@ -48,9 +52,20 @@ def update_devices(data):
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
 
+def start_serial_reader():
+    """Start reading data from the serial port."""
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE)
+    while True:
+        if ser.in_waiting > 0:
+            data = ser.readline().decode('utf-8').strip()
+            if data:
+                print(f"Received serial data: {data}")
+                update_devices(data)
+
+
 @app.route('/')
 def index():
-    return render_template('dashboard.html')
+    return render_template('test.html')
 
 @app.route('/data')
 def get_data():
@@ -61,7 +76,7 @@ def add_device():
     """Endpoint to add a new device."""
     global devices
     device_id = request.form.get('device_id')
-    mat_status = int(request.form.get('mat_status', 0))
+    mat_status = int(request.form.get('mat_status', 1))
     band_status = int(request.form.get('band_status', 0))
     
     if device_id:
@@ -75,11 +90,25 @@ def add_device():
     else:
         return jsonify({"error": "Device ID is required!"}), 400
 
+@app.route('/remove_device/<device_id>', methods=['DELETE'])
+def remove_device(device_id):
+    """Endpoint to remove a device."""
+    if device_id in devices:
+        del devices[device_id]
+        return jsonify({'message': f'Device {device_id} removed successfully.'}), 200
+    else:
+        return jsonify({'error': 'Device not found.'}), 404
+
 if __name__ == '__main__':
     # Start TCP server in a separate thread
     tcp_thread = threading.Thread(target=start_tcp_server)
     tcp_thread.daemon = True
     tcp_thread.start()
+
+    # Start the serial reading thread
+    serial_thread = threading.Thread(target=start_serial_reader)
+    serial_thread.daemon = True
+    serial_thread.start()
 
     # Start Flask app
     app.run(debug=True)
