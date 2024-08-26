@@ -106,8 +106,8 @@
 </head>
 <body>
     <h1>ESD Device Dashboard</h1>
-
-    <!-- Add Device Form -->
+    <div class="timer" id="timer"></div>
+    <br/>
     <form id="add-device-form">
         <label for="device_id">Device IP Address:</label>
         <input type="text" id="device_id" name="device_id" required>
@@ -131,6 +131,18 @@
     </table>
 
     <script>
+
+        function updateTimer() {
+            const timerElement = document.getElementById('timer');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+            const dateString = now.toLocaleDateString();
+            timerElement.textContent = `${dateString} - ${timeString}`;
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();  
+
         function fetchData() {
             fetch('/data')
                 .then(response => response.json())
