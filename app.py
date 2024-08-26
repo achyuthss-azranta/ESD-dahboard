@@ -1,7 +1,7 @@
 import json
 import socket
 import threading
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request #type: ignore
 
 app = Flask(__name__)
 
@@ -11,7 +11,7 @@ devices = {}
 # TCP server configuration
 TCP_IP = '127.0.0.1'
 TCP_PORT = 5005
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 1028
 
 def start_tcp_server():
     """Start a TCP server to receive data."""
