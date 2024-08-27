@@ -21,45 +21,6 @@
             font-size: 2rem;
         }
 
-        form {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 600px;
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        label {
-            font-weight: bold;
-            margin-right: 10px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 8px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        button[type="submit"], .action-button {
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button[type="submit"]:hover, .action-button:hover {
-            background-color: #0056b3;
-        }
-
         .timer {
             margin-bottom: 20px;
             font-size: 1.2em;
@@ -100,21 +61,21 @@
             font-weight: bold;
             cursor: pointer;
         }
-
+        
+        .remove-button {
+            padding: 5px 10px;
+            color: white;
+            background-color: red;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
         .green {
             background-color: #28a745;
         }
 
         .red {
-            background-color: #dc3545;
-        }
-
-        .action-button {
-            background-color: #28a745;
-            margin-right: 5px;
-        }
-
-        .remove-button {
             background-color: #dc3545;
         }
     </style>
@@ -124,10 +85,10 @@
     <div class="timer" id="timer"></div>
     <br/>
     <form id="add-device-form">
-        <label for="device_id">Device IP Address:</label>
-        <input type="text" id="device_id" name="device_id" required>
-        <label for="port_number">Port Number:</label>
-        <input type="text" id="port_number" name="port_number" required>
+        <label for="device_ip">Device IP Address:</label>
+        <input type="text" id="device_ip" name="device_ip" required>
+        <label for="device_port">Device Port:</label>
+        <input type="text" id="device_port" name="device_port" required>
         <button type="submit">Add Device</button>
     </form>
 
@@ -173,10 +134,11 @@
                             <td><button class="status-button ${status.BAND_STATUS ? 'green' : 'red'}">${status.BAND_STATUS}</button></td>
                             <td>${status.MAT_STATUS && status.BAND_STATUS ? 'Safe' : 'Unsafe'}</td>
                             <td>
-                                <button class="action-button" onclick="connectDevice('${device}')">Connect</button>
-                                <button class="remove-button" onclick="removeDevice('${device}')">Delete</button>
+                                <button class="remove-button" onclick="removeDevice('${device}')">Remove</button>
+                                <button class="connect-button">Connect</button>
                             </td>
                         `;
+
                         tbody.appendChild(row);
                     }
                 })
@@ -184,7 +146,6 @@
         }
 
         setInterval(fetchData, 1000);
-
         fetchData();
 
         // Handle Add Device Form submission
@@ -208,46 +169,21 @@
             .catch(error => console.error("Error adding device:", error));
         });
 
-        document.getElementById('add-device-form').addEventListener('submit', function(event) {
-            event.preventDefault(); 
-            const formData = new FormData(this);
-
-            fetch('/add_device', {
-                method: 'POST',
-                body: formData
+        // Example remove device function
+        function removeDevice(device) {
+            fetch(`/remove_device/${device}`, {
+                method: 'DELETE'
             })
-
             .then(response => response.json())
             .then(result => {
                 if (result.message) {
                     alert(result.message);
-                    fetchData(); 
+                    fetchData();
                 } else if (result.error) {
                     alert(result.error);
                 }
             })
-            .catch(error => console.error("Error adding device:", error));
-        });
-
-        // Handle device connection
-        function connectDevice(deviceId) {
-            alert(`Connecting to ${deviceId}`);
-            // Logic to handle the connection to the device
-        }
-
-        // Handle device removal
-        function removeDevice(deviceId) {
-            fetch(`/remove_device/${deviceId}`, { method: 'DELETE' })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.message) {
-                        alert(result.message);
-                        fetchData();
-                    } else if (result.error) {
-                        alert(result.error);
-                    }
-                })
-                .catch(error => console.error("Error removing device:", error));
+            .catch(error => console.error("Error removing device:", error));
         }
     </script>
 </body>
