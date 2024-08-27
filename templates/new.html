@@ -188,22 +188,26 @@
         fetchData();
 
         // Handle Add Device Form submission
-        function addDevice() {
+        document.getElementById('add-device-form').addEventListener('submit', function(event) {
+            event.preventDefault(); 
+            const formData = new FormData(this);
+
             fetch('/add_device', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ device_id: 'Device1' })  // Change as needed
-            }).then(response => response.json())
-              .then(data => {
-                  console.log("Device added:", data);
-                  // Update the table or UI accordingly
-              }).catch(error => {
-                  console.error("Error adding device:", error);
-              });
-        }
-        
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.message) {
+                    alert(result.message);
+                    fetchData(); 
+                } else if (result.error) {
+                    alert(result.error);
+                }
+            })
+            .catch(error => console.error("Error adding device:", error));
+        });
+
         document.getElementById('add-device-form').addEventListener('submit', function(event) {
             event.preventDefault(); 
             const formData = new FormData(this);
