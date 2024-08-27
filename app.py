@@ -51,16 +51,24 @@ def get_data():
 
 @app.route('/add_device', methods=['POST'])
 def add_device():
+    """Endpoint to add a new device."""
     global devices
-    data = request.json
-    device_id = data.get('device_id')
+    device_id = request.form.get('device_id')
+    mat_status = int(request.form.get('mat_status', 1))
+    band_status = int(request.form.get('band_status', 0))
     
-    if device_id and device_id not in devices:
-        devices[device_id] = {'MAT_STATUS': 0, 'BAND_STATUS': 0, 'ESD_STATUS': 'Unsafe'}
-        return jsonify({'status': 'success', 'device_id': device_id}), 200
+    if device_id:
+        esd_status = "Safe" if mat_status == 1 and band_status == 1 else "Unsafe"
+        devices[device_id] = {
+            'MAT_STATUS': mat_status,
+            'BAND_STATUS': band_status,
+            'ESD_STATUS': esd_status
+        }
+        return jsonify({"message": "Device added successfully!"}), 200
     else:
-        return jsonify({'status': 'error', 'message': 'Device already exists or invalid device ID'}), 400
-
+        return jsonify({"error": "Device ID is required!"}), 400
+    
+    
 if __name__ == '__main__':
     # Start the hardware client in a separate thread
     hardware_thread = threading.Thread(target=start_hardware_client)
