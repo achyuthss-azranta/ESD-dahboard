@@ -9,7 +9,7 @@ The dashboard looks something like this -
 ## Steps to run this project - 
 
 ```
-git clone https://github.com/achyuthss-azranta/http-mqtt.git -b test --single-branch
+git clone https://github.com/achyuthss-azranta/http-mqtt.git -b final --single-branch
 ```
 
 Next, in the root directory of the project, ensure you have an ``app.py`` & ``templates`` folder having ``test.html`` folder that has the frontend UI which can be seen by the user.
