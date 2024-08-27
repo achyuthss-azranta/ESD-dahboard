@@ -20,4 +20,5 @@ python app.py
 
 Then, you can see the dashboard as below - 
 
-![Dashboard Looks like this](Screenshot 2024-08-26 152753.png)
+![image](https://github.com/user-attachments/assets/6a7830e2-3cd4-4dc4-826b-5eedbed0f413)
+
