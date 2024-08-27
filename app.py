@@ -1,7 +1,7 @@
 import json
 import socket
 import threading
-from flask import Flask, render_template, jsonify 
+from flask import Flask, render_template, jsonify, request 
 
 app = Flask(__name__)
 
@@ -48,6 +48,18 @@ def index():
 @app.route('/data')
 def get_data():
     return jsonify(devices)
+
+@app.route('/add_device', methods=['POST'])
+def add_device():
+    global devices
+    data = request.json
+    device_id = data.get('device_id')
+    
+    if device_id and device_id not in devices:
+        devices[device_id] = {'MAT_STATUS': 0, 'BAND_STATUS': 0, 'ESD_STATUS': 'Unsafe'}
+        return jsonify({'status': 'success', 'device_id': device_id}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Device already exists or invalid device ID'}), 400
 
 if __name__ == '__main__':
     # Start the hardware client in a separate thread
