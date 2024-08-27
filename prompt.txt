@@ -1,3 +1,107 @@
+For this, make below changes- 
+
+Also, the table should have one more column - bulb icon blinking (ever 0.5 or 1 second) (in red color) only if it is unsafe, and bulb should not be blinking if its safe. Also a buzzer sound should be played when there is unsafe esd status and not buzz when its safe
+
+also a single button "connect" below to connect all devices on the network, and remove the "connect" button present in the table's actions 
+
+Do not change anything else
+
+app.py - 
+
+import json
+import socket
+import threading
+from flask import Flask, render_template, jsonify, request
+
+app = Flask(__name__)
+
+# Dictionary to store device data
+devices = {}
+
+BUFFER_SIZE = 1028
+
+def handle_device_connection(ip, port):
+    """Connect to the hardware's TCP server and receive data."""
+    global devices
+
+    while True:
+        try:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((ip, port))
+
+            while True:
+                data = client_socket.recv(BUFFER_SIZE).decode('utf-8').strip()
+                if data:
+                    print(f"Received data from {ip}:{port} - {data}")
+                    # Process the received data
+                    if "Band connected" in data or "Band disconnected" in data:
+                        devices[ip]['BAND_STATUS'] = 1 if "Band connected" in data else 0
+                    elif "Mat connected" in data or "Mat disconnected" in data:
+                        devices[ip]['MAT_STATUS'] = 1 if "Mat connected" in data else 0
+
+                    # Update ESD status
+                    esd_status = "Safe" if devices[ip].get('BAND_STATUS') == 1 and devices[ip].get('MAT_STATUS') == 1 else "Unsafe"
+                    devices[ip]['ESD_STATUS'] = esd_status
+
+        except Exception as e:
+            print(f"Error with {ip}:{port} - {e}")
+        finally:
+            client_socket.close()
+
+@app.route('/')
+def index():
+    return render_template('final.html')
+
+@app.route('/data')
+def get_data():
+    return jsonify(devices)
+
+@app.route('/add_device', methods=['POST'])
+def add_device():
+    """Add a new device by IP and Port."""
+    global devices
+    ip = request.form.get('device_ip')
+    port = int(request.form.get('device_port'))
+
+    if ip and port:
+        devices[ip] = {
+            'BAND_STATUS': 0,
+            'MAT_STATUS': 0,
+            'ESD_STATUS': 'Unsafe'
+        }
+        threading.Thread(target=handle_device_connection, args=(ip, port), daemon=True).start()
+        return jsonify({"message": f"Device {ip}:{port} added successfully!"}), 200
+    else:
+        return jsonify({"error": "Device IP and Port are required!"}), 400
+
+@app.route('/remove_device/<device_ip>', methods=['DELETE'])
+def remove_device(device_ip):
+    """Remove a device by IP."""
+    global devices
+    if device_ip in devices:
+        del devices[device_ip]
+        return jsonify({"message": f"Device {device_ip} removed successfully!"}), 200
+    else:
+        return jsonify({"error": "Device not found!"}), 404
+
+@app.route('/connect_device/<device_ip>', methods=['POST'])
+def connect_device(device_ip):
+    """Connect to a device by IP."""
+    global devices
+    if device_ip in devices:
+        # Start connection handling thread
+        threading.Thread(target=handle_device_connection, args=(device_ip, devices[device_ip]['port']), daemon=True).start()
+        return jsonify({"message": f"Device {device_ip} connected successfully!"}), 200
+    else:
+        return jsonify({"error": "Device not found!"}), 404
+
+if __name__ == '__main__':
+    # Start Flask app
+    app.run(debug=True)
+
+
+final.html - 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,13 +187,6 @@
         
         .remove-button {
             background-color: red;
-        }
-        
-        .status-indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
         }
 
         .connect-button {
@@ -200,37 +297,6 @@
         .form-container button:hover {
             background-color: #0056b3;
         }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-
-        .blinking {
-            animation: blink 1s linear infinite;
-        }
-
-        .bulb-icon {
-            font-size: 2em;
-            color: red;
-        }
-
-        #connect-all {
-            padding: 10px 20px;
-            margin-top: 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-        }
-
-        #connect-all:hover {
-            background-color: #0056b3;
-        }
     </style>
 </head>
 <body class="light-mode">
@@ -254,7 +320,6 @@
             <button type="submit">Add Device</button>
         </form>
     </div>
-    <button id="connect-all">Connect All Devices</button>
     <table>
         <thead>
             <tr>
@@ -263,14 +328,12 @@
                 <th>BAND STATUS</th>
                 <th>ESD Device Safety</th>
                 <th>Actions</th>
-                <th>Status</th>
             </tr>
         </thead>
         <tbody id="device-data">
             <!-- Data will be populated here -->
         </tbody>
     </table>
-    
 
     <script>
         function updateTimer() {
@@ -293,28 +356,18 @@
 
                     for (const [device, status] of Object.entries(data)) {
                         const row = document.createElement('tr');
-                        const isUnsafe = !(status.MAT_STATUS && status.BAND_STATUS);
                         row.innerHTML = `
                             <td>${device}</td>
-                            <td><button class="status-indicator ${status.MAT_STATUS ? 'green' : 'red'}"></button></td>
-                            <td><button class="status-indicator ${status.BAND_STATUS ? 'green' : 'red'}"></button></td>
-                            <td>${isUnsafe ? 'Unsafe' : 'Safe'}</td>
+                            <td><button class="status-button ${status.MAT_STATUS ? 'green' : 'red'}">${status.MAT_STATUS}</button></td>
+                            <td><button class="status-button ${status.BAND_STATUS ? 'green' : 'red'}">${status.BAND_STATUS}</button></td>
+                            <td>${status.MAT_STATUS && status.BAND_STATUS ? 'Safe' : 'Unsafe'}</td>
                             <td>
                                 <button class="remove-button" onclick="removeDevice('${device}')">Remove</button>
-                            </td>
-                            <td>
-                                <span class="bulb-icon ${isUnsafe ? 'blinking' : ''}">${isUnsafe ? '💡' : ''}</span>
+                                <button class="connect-button" onclick="connectDevice('${device}')">Connect</button>
                             </td>
                         `;
 
                         tbody.appendChild(row);
-                    }
-
-                    // Play buzzer sound if any device is unsafe
-                    if (Object.values(data).some(status => !(status.MAT_STATUS && status.BAND_STATUS))) {
-                        playBuzzerSound();
-                    } else {
-                        stopBuzzerSound();
                     }
                 })
                 .catch(error => console.error("Error fetching data:", error));
@@ -322,23 +375,6 @@
 
         setInterval(fetchData, 500);
         fetchData();
-
-        let buzzerAudio;
-
-        function playBuzzerSound() {
-            if (!buzzerAudio) {
-                buzzerAudio = new Audio('static/buzzersound.mp3');
-                buzzerAudio.loop = true;
-            }
-            buzzerAudio.play();
-        }
-
-        function stopBuzzerSound() {
-            if (buzzerAudio) {
-                buzzerAudio.pause();
-                buzzerAudio.currentTime = 0;
-            }
-        }
 
         document.getElementById('add-device-form').addEventListener('submit', function(event) {
             event.preventDefault(); 
@@ -391,26 +427,6 @@
             })
             .catch(error => console.error("Error connecting device:", error));
         }
-
-        document.getElementById('connect-all').addEventListener('click', function() {
-            fetch('/data')
-                .then(response => response.json())
-                .then(data => {
-                    const devices = Object.keys(data);
-                    const connectPromises = devices.map(device => 
-                        fetch(`/connect_device/${device}`, { method: 'POST' })
-                            .then(response => response.json())
-                    );
-                    
-                    Promise.all(connectPromises)
-                        .then(results => {
-                            const successCount = results.filter(result => result.message).length;
-                            alert(`Connected ${successCount} out of ${devices.length} devices successfully.`);
-                            fetchData();
-                        });
-                })
-                .catch(error => console.error("Error connecting devices:", error));
-        });
 
         function toggleMode() {
             const body = document.body;

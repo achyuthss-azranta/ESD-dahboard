@@ -57,7 +57,8 @@ def add_device():
         devices[ip] = {
             'BAND_STATUS': 0,
             'MAT_STATUS': 0,
-            'ESD_STATUS': 'Unsafe'
+            'ESD_STATUS': 'Unsafe',
+            'port': port
         }
         threading.Thread(target=handle_device_connection, args=(ip, port), daemon=True).start()
         return jsonify({"message": f"Device {ip}:{port} added successfully!"}), 200
