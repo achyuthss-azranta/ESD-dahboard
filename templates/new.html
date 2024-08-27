@@ -46,7 +46,7 @@
             border-radius: 4px;
         }
 
-        button[type="submit"] {
+        button[type="submit"], .action-button {
             padding: 10px 20px;
             background-color: #007bff;
             color: white;
@@ -56,7 +56,7 @@
             transition: background-color 0.3s ease;
         }
 
-        button[type="submit"]:hover {
+        button[type="submit"]:hover, .action-button:hover {
             background-color: #0056b3;
         }
 
@@ -100,21 +100,21 @@
             font-weight: bold;
             cursor: pointer;
         }
-        
-        .remove-button {
-            padding: 5px 10px;
-            color: white;
-            background-color: red;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
+
         .green {
             background-color: #28a745;
         }
 
         .red {
+            background-color: #dc3545;
+        }
+
+        .action-button {
+            background-color: #28a745;
+            margin-right: 5px;
+        }
+
+        .remove-button {
             background-color: #dc3545;
         }
     </style>
@@ -129,7 +129,6 @@
         <label for="port_number">Port Number:</label>
         <input type="text" id="port_number" name="port_number" required>
         <button type="submit">Add Device</button>
-     
     </form>
 
     <table>
@@ -156,8 +155,8 @@
             timerElement.textContent = `${dateString} - ${timeString}`;
         }
 
-        setInterval(updateTimer, 500);
-        updateTimer();  // Initial call to display timer immediately
+        setInterval(updateTimer, 1000);
+        updateTimer();  
 
         function fetchData() {
             fetch('/data')
@@ -172,10 +171,11 @@
                             <td>${device}</td>
                             <td><button class="status-button ${status.MAT_STATUS ? 'green' : 'red'}">${status.MAT_STATUS}</button></td>
                             <td><button class="status-button ${status.BAND_STATUS ? 'green' : 'red'}">${status.BAND_STATUS}</button></td>
-                            <td>${status.ESD_STATUS}</td>
-                            <td><button class="remove-button" onclick="removeDevice('${device}')">Remove</button></td>
-                            <td><button class="remove-button" onclick="removeDevice('${device}')">Connect</button></td>
-                            
+                            <td>${status.MAT_STATUS && status.BAND_STATUS ? 'Safe' : 'Unsafe'}</td>
+                            <td>
+                                <button class="action-button" onclick="connectDevice('${device}')">Connect</button>
+                                <button class="remove-button" onclick="removeDevice('${device}')">Delete</button>
+                            </td>
                         `;
                         tbody.appendChild(row);
                     }
@@ -183,21 +183,8 @@
                 .catch(error => console.error("Error fetching data:", error));
         }
 
-        function removeDevice(deviceId) {
-            fetch(`/remove_device/${deviceId}`, { method: 'DELETE' })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.message) {
-                        alert(result.message);
-                        fetchData();  // Refresh the table data
-                    } else if (result.error) {
-                        alert(result.error);
-                    }
-                })
-                .catch(error => console.error("Error removing device:", error));
-        }
+        setInterval(fetchData, 1000);
 
-        setInterval(fetchData, 500);
         fetchData();
 
         // Handle Add Device Form submission
@@ -209,6 +196,7 @@
                 method: 'POST',
                 body: formData
             })
+
             .then(response => response.json())
             .then(result => {
                 if (result.message) {
@@ -220,7 +208,27 @@
             })
             .catch(error => console.error("Error adding device:", error));
         });
-        
+
+        // Handle device connection
+        function connectDevice(deviceId) {
+            alert(`Connecting to ${deviceId}`);
+            // Logic to handle the connection to the device
+        }
+
+        // Handle device removal
+        function removeDevice(deviceId) {
+            fetch(`/remove_device/${deviceId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.message) {
+                        alert(result.message);
+                        fetchData();
+                    } else if (result.error) {
+                        alert(result.error);
+                    }
+                })
+                .catch(error => console.error("Error removing device:", error));
+        }
     </script>
 </body>
 </html>

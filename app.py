@@ -1,114 +1,59 @@
 import json
 import socket
 import threading
-import time
-import serial #type: ignore
-from flask import Flask, render_template, jsonify, request #type: ignore
+from flask import Flask, render_template, jsonify 
 
 app = Flask(__name__)
 
+# Dictionary to store device data
 devices = {}
 
-SERIAL_PORT = '/dev/ttyUSB0'
-BAUD_RATE = 9600
-
-# TCP server configuration
-TCP_IP = '127.0.0.1'
-TCP_PORT = 5005
+# TCP server configuration (from the hardware code)
+TCP_IP = '192.168.1.2'  # Replace with the actual IP address of the W5500 module
+TCP_PORT = 12345
 BUFFER_SIZE = 1028
 
-def start_tcp_server():
-    """Start a TCP server to receive data."""
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((TCP_IP, TCP_PORT))
-    server_socket.listen(1)
-
-    print(f"TCP server listening on {TCP_IP}:{TCP_PORT}")
-
-    while True:
-        conn, addr = server_socket.accept()
-        print(f"Connection from: {addr}")
-        data = conn.recv(BUFFER_SIZE).decode('utf-8')
-        if data:
-            print(f"Received data: {data}")
-            update_devices(data)
-        conn.close()
-
-def update_devices(data):
-    """Update devices dictionary with received data."""
+def start_hardware_client():
+    """Connect to the hardware's TCP server and receive data."""
     global devices
-    try:
-        # Assuming data is received in JSON format
-        parsed_data = json.loads(data)
-        for device_id, status in parsed_data.items():
-            mat_status = status.get('MAT_STATUS', 0)
-            band_status = status.get('BAND_STATUS', 0)
-            esd_status = "Safe" if mat_status == 1 and band_status == 1 else "Unsafe"
-            devices[device_id] = {
-                'MAT_STATUS': mat_status,
-                'BAND_STATUS': band_status,
-                'ESD_STATUS': esd_status
-            }
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
 
-def start_serial_reader():
-    """Start reading data from the serial port."""
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE)
     while True:
-        if ser.in_waiting > 0:
-            data = ser.readline().decode('utf-8').strip()
-            if data:
-                print(f"Received serial data: {data}")
-                update_devices(data)
+        try:
+            # Create a socket to connect to the hardware's TCP server
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((TCP_IP, TCP_PORT))
 
+            while True:
+                data = client_socket.recv(BUFFER_SIZE).decode('utf-8').strip()
+                if data:
+                    print(f"Received data: {data}")
+                    # Process the received data
+                    if "Band connected" in data or "Band disconnected" in data:
+                        devices['Band'] = {'BAND_STATUS': 1 if "Band connected" in data else 0}
+                    elif "Mat connected" in data or "Mat disconnected" in data:
+                        devices['Mat'] = {'MAT_STATUS': 1 if "Mat connected" in data else 0}
+                    # Update ESD status
+                    esd_status = "Safe" if devices.get('Band', {}).get('BAND_STATUS') == 1 and devices.get('Mat', {}).get('MAT_STATUS') == 1 else "Unsafe"
+                    devices['ESD'] = {'ESD_STATUS': esd_status}
+
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            client_socket.close()
 
 @app.route('/')
 def index():
-    return render_template('test.html')
+    return render_template('new.html')
 
 @app.route('/data')
 def get_data():
     return jsonify(devices)
 
-@app.route('/add_device', methods=['POST'])
-def add_device():
-    """Endpoint to add a new device."""
-    global devices
-    device_id = request.form.get('device_id')
-    mat_status = int(request.form.get('mat_status', 1))
-    band_status = int(request.form.get('band_status', 0))
-    
-    if device_id:
-        esd_status = "Safe" if mat_status == 1 and band_status == 1 else "Unsafe"
-        devices[device_id] = {
-            'MAT_STATUS': mat_status,
-            'BAND_STATUS': band_status,
-            'ESD_STATUS': esd_status
-        }
-        return jsonify({"message": "Device added successfully!"}), 200
-    else:
-        return jsonify({"error": "Device ID is required!"}), 400
-
-@app.route('/remove_device/<device_id>', methods=['DELETE'])
-def remove_device(device_id):
-    """Endpoint to remove a device."""
-    if device_id in devices:
-        del devices[device_id]
-        return jsonify({'message': f'Device {device_id} removed successfully.'}), 200
-    else:
-        return jsonify({'error': 'Device not found.'}), 404
-
 if __name__ == '__main__':
-    # Start TCP server in a separate thread
-    tcp_thread = threading.Thread(target=start_tcp_server)
-    tcp_thread.daemon = True
-    tcp_thread.start()
-
-    # Start the serial reading thread
-    serial_thread = threading.Thread(target=start_serial_reader)
-    serial_thread.daemon = True
-    serial_thread.start()
+    # Start the hardware client in a separate thread
+    hardware_thread = threading.Thread(target=start_hardware_client)
+    hardware_thread.daemon = True
+    hardware_thread.start()
 
     # Start Flask app
     app.run(debug=True)
