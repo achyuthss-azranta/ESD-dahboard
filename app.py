@@ -1,7 +1,9 @@
 import json
 import socket
 import threading
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request #type: ignore
+import subprocess
+
 
 app = Flask(__name__)
 
@@ -29,7 +31,6 @@ def handle_device_connection(ip, port):
                     elif "Mat connected" in data or "Mat disconnected" in data:
                         devices[ip]['MAT_STATUS'] = 1 if "Mat connected" in data else 0
 
-                    # Update ESD status
                     esd_status = "Safe" if devices[ip].get('BAND_STATUS') == 1 and devices[ip].get('MAT_STATUS') == 1 else "Unsafe"
                     devices[ip]['ESD_STATUS'] = esd_status
 
@@ -74,6 +75,22 @@ def remove_device(device_ip):
         return jsonify({"message": f"Device {device_ip} removed successfully!"}), 200
     else:
         return jsonify({"error": "Device not found!"}), 404
+
+@app.route('/scan_network', methods=['GET'])
+def scan_network():
+    """Scan the network for connected devices."""
+    result = subprocess.run(['nmap', '-sn', '192.168.1.0/24'], stdout=subprocess.PIPE)
+    output = result.stdout.decode('utf-8')
+    
+    # Extract IP addresses from nmap output
+    ips = []
+    for line in output.splitlines():
+        if "Nmap scan report for" in line:
+            ip = line.split()[-1]
+            ips.append(ip)
+    
+    return jsonify({"ips": ips})
+
 
 @app.route('/connect_device/<device_ip>', methods=['POST'])
 def connect_device(device_ip):

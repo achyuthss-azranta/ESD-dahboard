@@ -130,6 +130,18 @@
             height: 0;
         }
 
+        .green-cell {
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+
+        .red-cell {
+            background-color: #dc3545;
+            color: white;
+            font-weight: bold;
+        }
+
         .slider {
             position: absolute;
             cursor: pointer;
@@ -216,6 +228,12 @@
             color: red;
         }
 
+        .scan {
+            border-radius: 20px;
+            font-size: large;
+
+        }
+
         #connect-all {
             padding: 10px 20px;
             margin-top: 20px;
@@ -243,6 +261,15 @@
     </div>
     <h1>ESD Device Dashboard</h1>
     <div class="timer" id="timer"></div>
+
+    <div>
+        <button id="scan-network" class="scan">Scan Network</button>
+    </div>
+    
+    <div id="ip-list">
+      
+    </div>
+
     <br/>
     <div class="form-container">
         <form id="add-device-form">
@@ -273,6 +300,18 @@
     
 
     <script>
+
+        document.getElementById('scan-network').addEventListener('click', function() {
+            fetch('/scan_network')
+                .then(response => response.json())
+                .then(data => {
+                    const ipList = document.getElementById('ip-list');
+                    ipList.innerHTML = '<h3>Connected Devices:</h3><ul>' + data.ips.map(ip => `<li>${ip}</li>`).join('') + '</ul>';
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+
         function updateTimer() {
             const timerElement = document.getElementById('timer');
             const now = new Date();
@@ -296,8 +335,8 @@
                         const isUnsafe = !(status.MAT_STATUS && status.BAND_STATUS);
                         row.innerHTML = `
                             <td>${device}</td>
-                            <td><button class="status-indicator ${status.MAT_STATUS ? 'green' : 'red'}"></button></td>
-                            <td><button class="status-indicator ${status.BAND_STATUS ? 'green' : 'red'}"></button></td>
+                            <td class="${status.MAT_STATUS ? 'green-cell' : 'red-cell'}"></td>
+                            <td class="${status.BAND_STATUS ? 'green-cell' : 'red-cell'}"></td>
                             <td>${isUnsafe ? 'Unsafe' : 'Safe'}</td>
                             <td>
                                 <button class="remove-button" onclick="removeDevice('${device}')">Remove</button>
@@ -327,7 +366,7 @@
 
         function playBuzzerSound() {
             if (!buzzerAudio) {
-                buzzerAudio = new Audio('static/buzzersound.mp3');
+                buzzerAudio = new Audio('static/beepsound.mp3');
                 buzzerAudio.loop = true;
             }
             buzzerAudio.play();
