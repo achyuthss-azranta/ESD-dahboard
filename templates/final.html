@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Dashboard</title>
+    <title>ESD Device Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            height: 100vh;
+            overflow: hidden;
             transition: background-color 0.3s, color 0.3s;
         }
 
@@ -26,7 +28,7 @@
         }
 
         h1 {
-            margin-bottom: 20px;
+            margin: 20px;
             font-size: 2rem;
             color: inherit;
         }
@@ -39,10 +41,10 @@
 
         table {
             width: 100%;
-            max-width: 800px;
+            max-width: 1000px;
             background-color: inherit;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             overflow: hidden;
@@ -63,37 +65,49 @@
             background-color: #f1f1f1;
         }
 
-        .status-button {
+        .status-button, .remove-button, .connect-button {
             padding: 5px 10px;
             color: white;
             border: none;
             border-radius: 5px;
-            font-weight: bold;
             cursor: pointer;
+            font-weight: bold;
         }
 
-        .remove-button, .connect-button {
-            padding: 5px 10px;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
         .remove-button {
             background-color: red;
-        }
-        
-        .status-indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
         }
 
         .connect-button {
             background-color: green;
+        }
+
+        .status-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: inline-block;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .status-indicator.green {
+            background-color: #28a745;
+        }
+        
+        .status-indicator.red {
+            background-color: #dc3545;
+        }
+
+        .status-indicator.blinking {
+            animation: blink-animation 1s infinite;
+        }
+
+        @keyframes blink-animation {
+            0% { background-color: #dc3545; }
+            50% { background-color: #f4f4f4; }
+            100% { background-color: #dc3545; }
         }
 
         .green {
@@ -130,18 +144,6 @@
             height: 0;
         }
 
-        .green-cell {
-            background-color: #28a745;
-            color: white;
-            font-weight: bold;
-        }
-
-        .red-cell {
-            background-color: #dc3545;
-            color: white;
-            font-weight: bold;
-        }
-
         .slider {
             position: absolute;
             cursor: pointer;
@@ -176,30 +178,75 @@
 
         .form-container {
             margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             width: 100%;
-            max-width: 800px;
+            max-width: 1000px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .form-container label {
-            margin: 5px 0;
+            margin: 0;
             font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .form-container input,
+        .form-container button,
+        #search-button {
+            padding: 8px;
+            margin: 0;
+            height: 36px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
         }
 
         .form-container input {
-            padding: 10px;
-            margin: 5px 0;
-            width: 100%;
-            max-width: 300px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            width: 150px;
         }
 
-        .form-container button {
+        .form-container button,
+        #search-button {
+            width: auto;
+            min-width: 80px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .form-container button:hover,
+        #search-button:hover {
+            background-color: #0056b3;
+        }
+
+        #search-ip {
+            width: 150px;
+        }
+
+        .green-cell {
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+
+        .red-cell {
+            background-color: #dc3545;
+            color: white;
+            font-weight: bold;
+        }
+
+        #scan-network {
             padding: 10px 20px;
-            margin-top: 10px;
+            margin-top: 20px;
             background-color: #007bff;
             color: white;
             border: none;
@@ -207,31 +254,6 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 1rem;
-        }
-
-        .form-container button:hover {
-            background-color: #0056b3;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-
-        .blinking {
-            animation: blink 1s linear infinite;
-        }
-
-        .bulb-icon {
-            font-size: 2em;
-            color: red;
-        }
-
-        .scan {
-            border-radius: 20px;
-            font-size: large;
-
         }
 
         #connect-all {
@@ -244,10 +266,6 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 1rem;
-        }
-
-        #connect-all:hover {
-            background-color: #0056b3;
         }
     </style>
 </head>
@@ -263,24 +281,29 @@
     <div class="timer" id="timer"></div>
 
     <div>
-        <button id="scan-network" class="scan">Scan Network</button>
+        <button id="scan-network">Scan Network</button>
     </div>
     
-    <div id="ip-list">
-      
-    </div>
+    <div id="ip-list"></div>
 
-    <br/>
     <div class="form-container">
-        <form id="add-device-form">
-            <label for="device_ip">Device IP Address:</label>
-            <input type="text" id="device_ip" name="device_ip" required>
-            <br/>
-            <label for="device_port">Device Port:</label>
-            <input type="text" id="device_port" name="device_port" required>
+        <form id="add-device-form" style="display: flex; align-items: center; gap: 10px;">
+            <div class="form-group">
+                <label for="device_ip">Device IP Address</label>
+                <input type="text" id="device_ip" name="device_ip" required>
+            </div>
+            <div class="form-group">
+                <label for="device_port">Device Port</label>
+                <input type="text" id="device_port" name="device_port" required>
+            </div>
             <button type="submit">Add Device</button>
         </form>
+        <div class="form-group">
+            <input type="text" id="search-ip" placeholder="Search by IP address">
+            <button id="search-button">Search</button>
+        </div>
     </div>
+
     <button id="connect-all">Connect All Devices</button>
     <table>
         <thead>
@@ -294,175 +317,176 @@
             </tr>
         </thead>
         <tbody id="device-data">
-            <!-- Data will be populated here -->
         </tbody>
     </table>
-    
+
+    <audio id="buzzer" src="/static/beepsound.mp3"></audio>
 
     <script>
-
         document.getElementById('scan-network').addEventListener('click', function() {
             fetch('/scan_network')
                 .then(response => response.json())
                 .then(data => {
                     const ipList = document.getElementById('ip-list');
-                    ipList.innerHTML = '<h3>Connected Devices:</h3><ul>' + data.ips.map(ip => `<li>${ip}</li>`).join('') + '</ul>';
-                })
-                .catch(error => console.error('Error:', error));
+                    ipList.innerHTML = '<h2>Available IP Addresses:</h2><ul>';
+                    data.ips.forEach(ip => {
+                        ipList.innerHTML += `<li>${ip}</li>`;
+                    });
+                    ipList.innerHTML += '</ul>';
+                });
         });
 
-
-        function updateTimer() {
-            const timerElement = document.getElementById('timer');
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { hour12: false });
-            const dateString = now.toLocaleDateString();
-            timerElement.textContent = `${dateString} - ${timeString}`;
-        }
-
-        setInterval(updateTimer, 1000);
-        updateTimer();  
-
-        function fetchData() {
-            fetch('/data')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('device-data');
-                    tbody.innerHTML = ''; // Clear existing rows
-
-                    for (const [device, status] of Object.entries(data)) {
-                        const row = document.createElement('tr');
-                        const isUnsafe = !(status.MAT_STATUS && status.BAND_STATUS);
-                        row.innerHTML = `
-                            <td>${device}</td>
-                            <td class="${status.MAT_STATUS ? 'green-cell' : 'red-cell'}"></td>
-                            <td class="${status.BAND_STATUS ? 'green-cell' : 'red-cell'}"></td>
-                            <td>${isUnsafe ? 'Unsafe' : 'Safe'}</td>
-                            <td>
-                                <button class="remove-button" onclick="removeDevice('${device}')">Remove</button>
-                            </td>
-                            <td>
-                                <span class="bulb-icon ${isUnsafe ? 'blinking' : ''}">${isUnsafe ? '💡' : ''}</span>
-                            </td>
-                        `;
-
-                        tbody.appendChild(row);
-                    }
-
-                    // Play buzzer sound if any device is unsafe
-                    if (Object.values(data).some(status => !(status.MAT_STATUS && status.BAND_STATUS))) {
-                        playBuzzerSound();
-                    } else {
-                        stopBuzzerSound();
-                    }
-                })
-                .catch(error => console.error("Error fetching data:", error));
-        }
-
-        setInterval(fetchData, 500);
-        fetchData();
-
-        let buzzerAudio;
-
-        function playBuzzerSound() {
-            if (!buzzerAudio) {
-                buzzerAudio = new Audio('static/beepsound.mp3');
-                buzzerAudio.loop = true;
-            }
-            buzzerAudio.play();
-        }
-
-        function stopBuzzerSound() {
-            if (buzzerAudio) {
-                buzzerAudio.pause();
-                buzzerAudio.currentTime = 0;
-            }
-        }
+        document.getElementById('mode-toggle').addEventListener('change', function() {
+            document.body.classList.toggle('dark-mode', this.checked);
+            document.body.classList.toggle('light-mode', !this.checked);
+        });
 
         document.getElementById('add-device-form').addEventListener('submit', function(event) {
-            event.preventDefault(); 
-            const formData = new FormData(this);
+            event.preventDefault();
+            const deviceIp = document.getElementById('device_ip').value;
+            const devicePort = document.getElementById('device_port').value;
+
+            const formData = new URLSearchParams();
+            formData.append('device_ip', deviceIp);
+            formData.append('device_port', devicePort);
 
             fetch('/add_device', {
                 method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.message) {
-                    alert(result.message);
-                    fetchData(); 
-                } else if (result.error) {
-                    alert(result.error);
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            }).then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert('Device added successfully');
+                    document.getElementById('device_ip').value = '';
+                    document.getElementById('device_port').value = '';
+                    updateDeviceTable();
+                } else {
+                    alert('Failed to add device');
                 }
-            })
-            .catch(error => console.error("Error adding device:", error));
+            });
         });
 
-        function removeDevice(device) {
-            fetch(`/remove_device/${device}`, {
-                method: 'DELETE'
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.message) {
-                    alert(result.message);
-                    fetchData();
-                } else if (result.error) {
-                    alert(result.error);
-                }
-            })
-            .catch(error => console.error("Error removing device:", error));
-        }
-
-        function connectDevice(device) {
-            fetch(`/connect_device/${device}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.message) {
-                    alert(result.message);
-                    fetchData();
-                } else if (result.error) {
-                    alert(result.error);
-                }
-            })
-            .catch(error => console.error("Error connecting device:", error));
-        }
+        document.getElementById('search-button').addEventListener('click', function() {
+            const searchIp = document.getElementById('search-ip').value;
+            fetch(`/data`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('device-data');
+                    tableBody.innerHTML = '';
+                    if (data[searchIp]) {
+                        const device = data[searchIp];
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${searchIp}</td>
+                                <td class="${device.MAT_STATUS ? 'green-cell' : 'red-cell'}">${device.MAT_STATUS ? 'ON' : 'OFF'}</td>
+                                <td class="${device.BAND_STATUS ? 'green-cell' : 'red-cell'}">${device.BAND_STATUS ? 'ON' : 'OFF'}</td>
+                                <td class="${device.ESD_STATUS === 'Safe' ? 'green-cell' : 'red-cell'}">${device.ESD_STATUS}</td>
+                                <td>
+                                    <button class="connect-button" onclick="connectDevice('${searchIp}')">Connect</button>
+                                    <button class="remove-button" onclick="removeDevice('${searchIp}')">Remove</button>
+                                </td>
+                                <td>
+                                    <span class="status-indicator ${device.BLINKING ? 'blinking' : (device.BAND_STATUS ? 'green' : 'red')}"></span>
+                                </td>
+                            </tr>
+                        `;
+                        if (device.BLINKING) {
+                            document.getElementById('buzzer').play();
+                        }
+                    }
+                });
+        });
 
         document.getElementById('connect-all').addEventListener('click', function() {
+            fetch('/connect_all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateDeviceTable();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to connect all devices');
+            });
+        });
+
+        function updateDeviceTable() {
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
-                    const devices = Object.keys(data);
-                    const connectPromises = devices.map(device => 
-                        fetch(`/connect_device/${device}`, { method: 'POST' })
-                            .then(response => response.json())
-                    );
-                    
-                    Promise.all(connectPromises)
-                        .then(results => {
-                            const successCount = results.filter(result => result.message).length;
-                            alert(`Connected ${successCount} out of ${devices.length} devices successfully.`);
-                            fetchData();
-                        });
-                })
-                .catch(error => console.error("Error connecting devices:", error));
-        });
-
-        function toggleMode() {
-            const body = document.body;
-            if (body.classList.contains('light-mode')) {
-                body.classList.remove('light-mode');
-                body.classList.add('dark-mode');
-            } else {
-                body.classList.remove('dark-mode');
-                body.classList.add('light-mode');
-            }
+                    const tableBody = document.getElementById('device-data');
+                    tableBody.innerHTML = '';
+                    for (const [ip, device] of Object.entries(data)) {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${ip}</td>
+                                <td class="${device.MAT_STATUS ? 'green-cell' : 'red-cell'}">${device.MAT_STATUS ? 'ON' : 'OFF'}</td>
+                                <td class="${device.BAND_STATUS ? 'green-cell' : 'red-cell'}">${device.BAND_STATUS ? 'ON' : 'OFF'}</td>
+                                <td class="${device.ESD_STATUS === 'Safe' ? 'green-cell' : 'red-cell'}">${device.ESD_STATUS}</td>
+                                <td>
+                                    <button class="connect-button" onclick="connectDevice('${ip}')">Connect</button>
+                                    <button class="remove-button" onclick="removeDevice('${ip}')">Remove</button>
+                                </td>
+                                <td>
+                                    <span class="status-indicator ${device.BLINKING ? 'blinking' : (device.BAND_STATUS ? 'green' : 'red')}"></span>
+                                </td>
+                            </tr>
+                        `;
+                        if (device.BLINKING) {
+                            document.getElementById('buzzer').play();
+                        }
+                    }
+                });
         }
 
-        document.getElementById('mode-toggle').addEventListener('change', toggleMode);
+        function connectDevice(ip) {
+            fetch(`/connect_device/${ip}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateDeviceTable();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to connect device');
+            });
+        }
+
+        function removeDevice(ip) {
+            fetch(`/remove_device/${ip}`, {
+                method: 'DELETE'
+            }).then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateDeviceTable();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to remove device');
+            });
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const date = now.toDateString();
+            document.getElementById('timer').innerText = `${date} ${hours}:${minutes}:${seconds}`;
+        }
+
+        setInterval(updateTime, 1000);
     </script>
 </body>
 </html>

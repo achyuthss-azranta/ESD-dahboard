@@ -34,6 +34,8 @@ def handle_device_connection(ip, port):
                     esd_status = "Safe" if devices[ip].get('BAND_STATUS') == 1 and devices[ip].get('MAT_STATUS') == 1 else "Unsafe"
                     devices[ip]['ESD_STATUS'] = esd_status
 
+                    devices[ip]['BLINKING'] = (esd_status == "Unsafe")
+
         except Exception as e:
             print(f"Error with {ip}:{port} - {e}")
         finally:
@@ -52,9 +54,14 @@ def add_device():
     """Add a new device by IP and Port."""
     global devices
     ip = request.form.get('device_ip')
-    port = int(request.form.get('device_port'))
+    port_str = request.form.get('device_port')
 
-    if ip and port:
+    if ip and port_str:
+        try:
+            port = int(port_str)
+        except ValueError:
+            return jsonify({"error": "Invalid port number!"}), 400
+
         devices[ip] = {
             'BAND_STATUS': 0,
             'MAT_STATUS': 0,
@@ -65,6 +72,7 @@ def add_device():
         return jsonify({"message": f"Device {ip}:{port} added successfully!"}), 200
     else:
         return jsonify({"error": "Device IP and Port are required!"}), 400
+
 
 @app.route('/remove_device/<device_ip>', methods=['DELETE'])
 def remove_device(device_ip):
@@ -90,6 +98,15 @@ def scan_network():
             ips.append(ip)
     
     return jsonify({"ips": ips})
+
+@app.route('/connect_all', methods=['POST'])
+def connect_all():
+    """Connect to all devices."""
+    global devices
+    for device_ip in devices.keys():
+        port = devices[device_ip]['port']
+        threading.Thread(target=handle_device_connection, args=(device_ip, port), daemon=True).start()
+    return jsonify({"message": "All devices connected successfully!"}), 200
 
 
 @app.route('/connect_device/<device_ip>', methods=['POST'])
