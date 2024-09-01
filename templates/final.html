@@ -267,6 +267,26 @@
             font-weight: bold;
             font-size: 1rem;
         }
+
+        #dashboard-button {
+            background-color: #4CAF50; 
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px auto;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        #dashboard-button:hover{
+            background-color: #45a409;
+        }
+
     </style>
 </head>
 <body class="light-mode">
@@ -283,6 +303,13 @@
     <div>
         <button id="scan-network">Scan Network</button>
     </div>
+    <br/>
+
+    <div>
+        <button id = "dashboard-button" onclick="window.location.href='/switch_to_dashboard'">Go to Dashboard</button>
+    </div>
+    
+    <br/>
     
     <div id="ip-list"></div>
 
@@ -300,7 +327,7 @@
         </form>
     </div>
 
-    <button id="connect-all">Connect All Devices</button>
+    
     <table>
         <thead>
             <tr>
@@ -365,53 +392,6 @@
             });
         });
 
-        document.getElementById('search-button').addEventListener('click', function() {
-            const searchIp = document.getElementById('search-ip').value;
-            fetch(`/data`)
-                .then(response => response.json())
-                .then(data => {
-                    const tableBody = document.getElementById('device-data');
-                    tableBody.innerHTML = '';
-                    if (data[searchIp]) {
-                        const device = data[searchIp];
-                        tableBody.innerHTML += `
-                            <tr>
-                                <td>${searchIp}</td>
-                                <td class="${device.MAT_STATUS ? 'green-cell' : 'red-cell'}">${device.MAT_STATUS ? 'ON' : 'OFF'}</td>
-                                <td class="${device.BAND_STATUS ? 'green-cell' : 'red-cell'}">${device.BAND_STATUS ? 'ON' : 'OFF'}</td>
-                                <td class="${device.ESD_STATUS === 'Safe' ? 'green-cell' : 'red-cell'}">${device.ESD_STATUS}</td>
-                                <td>
-                                    <button class="connect-button" onclick="connectDevice('${searchIp}')">Connect</button>
-                                    <button class="remove-button" onclick="removeDevice('${searchIp}')">Remove</button>
-                                </td>
-                                <td>
-                                    <span class="status-indicator ${device.BLINKING ? 'blinking' : (device.BAND_STATUS ? 'green' : 'red')}"></span>
-                                </td>
-                            </tr>
-                        `;
-                        if (device.BLINKING) {
-                            document.getElementById('buzzer').play();
-                        }
-                    }
-                });
-        });
-
-        document.getElementById('connect-all').addEventListener('click', function() {
-            fetch('/connect_all', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                updateDeviceTable();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to connect all devices');
-            });
-        });
 
         function updateDeviceTable() {
             fetch('/data')

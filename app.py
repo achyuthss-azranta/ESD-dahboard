@@ -1,7 +1,7 @@
 import json
 import socket
 import threading
-from flask import Flask, render_template, jsonify, request #type: ignore
+from flask import Flask, render_template, jsonify, request, redirect, url_for #type: ignore
 import subprocess
 
 
@@ -45,6 +45,14 @@ def handle_device_connection(ip, port):
 def index():
     return render_template('final.html')
 
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+@app.route('/switch_to_dashboard')
+def switch_to_dashboard():
+    return redirect(url_for('dashboard'))
+
 @app.route('/data')
 def get_data():
     return jsonify(devices)
@@ -83,6 +91,28 @@ def remove_device(device_ip):
         return jsonify({"message": f"Device {device_ip} removed successfully!"}), 200
     else:
         return jsonify({"error": "Device not found!"}), 404
+
+@app.route('/refresh_network', methods=['GET'])
+def refresh_network():
+    """Refresh the network for connected devices."""
+    result = subprocess.run(['nmap', '-sn', '192.168.1.0/24'], stdout=subprocess.PIPE)
+    output = result.stdout.decode('utf-8')
+
+    # Extract IP addresses from nmap output
+    ips = []
+    for line in output.splitlines():
+        if "Nmap scan report for" in line:
+            ip = line.split()[-1]
+            ips.append(ip)
+
+    # You can assume the port is known or predefined
+    predefined_port = 12345  # Replace this with your actual port
+
+    # Create a list of device dictionaries
+    devices = [{'ip': ip, 'port': predefined_port} for ip in ips]
+
+    return jsonify({"devices": devices})
+
 
 @app.route('/scan_network', methods=['GET'])
 def scan_network():
